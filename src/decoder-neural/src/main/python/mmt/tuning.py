@@ -6,7 +6,7 @@ import torch
 from fairseq import optim, utils
 from fairseq.data import LanguagePairDataset
 
-from mmt import is_fairseq_0_10
+from mmt import is_fairseq_0_12
 
 
 class TuningOptions(object):
@@ -67,7 +67,7 @@ class Tuner(object):
         self.__train_step_kwargs = {'ignore_grad': False}
         self.__dataset_kwargs = {'left_pad_source': True, 'left_pad_target': False}
 
-        if is_fairseq_0_10():
+        if is_fairseq_0_12():
             self.__train_step_kwargs['update_num'] = 1
         else:
             self.__dataset_kwargs['max_source_positions'] = 4096

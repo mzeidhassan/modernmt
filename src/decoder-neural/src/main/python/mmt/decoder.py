@@ -10,7 +10,7 @@ import torch
 from fairseq.models.transformer import TransformerModel
 from fairseq.sequence_generator import SequenceGenerator
 
-from mmt import textencoder, is_fairseq_0_10
+from mmt import textencoder, is_fairseq_0_12
 from mmt.alignment import make_alignment, clean_alignment
 from mmt.tuning import Tuner, TuningOptions
 
@@ -122,7 +122,7 @@ class MMTDecoder(object):
         kwargs = {'beam_size': beam_size, 'max_len_a': 0, 'max_len_b': 1, 'min_len': 1, 'normalize_scores': True,
                   'len_penalty': 1, 'unk_penalty': 0, 'temperature': 1}
 
-        if is_fairseq_0_10():
+        if is_fairseq_0_12():
             args.insert(0, models)
         else:
             kwargs.update({'stop_early': True, 'sampling': False, 'sampling_topk': -1,
@@ -135,7 +135,7 @@ class MMTDecoder(object):
         return Tuner(checkpoints.args, checkpoints.task, model, tuning_ops=tuning_ops, device=device)
 
     @classmethod
-    def port_to_fairseq_0_10(cls, checkpoint):
+    def port_to_fairseq_0_12(cls, checkpoint):
         missing_default_params = {'decoder_layers_to_keep': None, 'encoder_layers_to_keep': None,
                                   'encoder_layerdrop': 0, 'decoder_layerdrop': 0, 'quant_noise_pq': 0}
         for missing in missing_default_params.keys():
@@ -148,8 +148,8 @@ class MMTDecoder(object):
         self._checkpoints = checkpoints
         self._checkpoints.args.fp16 = use_fp16
 
-        if is_fairseq_0_10():
-            self.port_to_fairseq_0_10(self._checkpoints)
+        if is_fairseq_0_12():
+            self.port_to_fairseq_0_12(self._checkpoints)
 
         self._device = device
         self._model = self._fix_model_probs(
