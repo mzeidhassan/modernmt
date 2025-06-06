@@ -13,9 +13,9 @@ if locale.getpreferredencoding().lower() != 'utf-8':
     raise UnicodeError('python locale preferred encoding is "%s", UTF-8 expected' % locale.getpreferredencoding())
 
 
-def is_fairseq_0_10():
+def is_fairseq_0_12():
     version = [int(n) for n in fairseq.__version__.split('.')]
-    return version[1] >= 10
+    return version[1] >= 12
 
 
 @register_task('mmt_translation')
