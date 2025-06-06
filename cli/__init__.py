@@ -23,7 +23,7 @@ def argv_valueof(argv, *args):
             if arg == argv[i]:
                 return argv[i + 1]
             elif argv[i].startswith(arg + '='):
-                return argv[i][:len(arg) + 1]
+                return argv[i][len(arg) + 1:]
     return None
 
 
