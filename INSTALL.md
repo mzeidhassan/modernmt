@@ -7,7 +7,7 @@
   </tr>
   <tr>
     <td valign="top"><b>PLATFORM</b></td>
-    <td>An Ubuntu 18.04 distribution, x86_64 platform. Thus it should be possible to install ModernMT on other Linux distributions (for experts).</td>
+    <td>Ubuntu 22.04 LTS (x86_64) is the reference platform. Ubuntu 20.04 or newer distributions are also supported.</td>
   </tr>
   <tr>
     <td valign="top"><b>CPU</b></td>
@@ -15,7 +15,7 @@
   </tr>
   <tr>
     <td valign="top"><b>GPU</b></td>
-    <td>At least one <a href="https://developer.nvidia.com/cuda-gpus">CUDA-capable GPU</a> with minimum 8GB of internal memory. Multiple GPUs are recommended in order to speedup both training and decoding.</td>
+    <td>At least one <a href="https://developer.nvidia.com/cuda-gpus">CUDA-capable GPU</a> with minimum 8GB of internal memory. ModernMT is tested with NVIDIA RTX 40-series GPUs (including RTX&nbsp;4080) using CUDA&nbsp;12.1. Multiple GPUs are recommended in order to speed up both training and decoding.</td>
   </tr>
   <tr>
     <td valign="top"><b>RAM</b></td>
@@ -23,35 +23,41 @@
   </tr>
 </table>
 
-# ModernMT on RTX 40XX
+ModernMT's Python dependencies are pinned to versions that are known to work with CUDA&nbsp;12.1, PyTorch 2.1+, and Fairseq 0.12.2+. Check `requirements.txt` (and `requirements_cuda-11.txt` for legacy environments) to confirm the expected ranges when preparing your system.
 
-ModernMT works correctly on the latest NVIDIA GPUs such as the RTX 4080 when using recent versions of PyTorch and Fairseq.
+# Modern NVIDIA GPUs (RTX 40 Series)
 
-_(Thanks to Loek van Kooten for the original guide)_
+ModernMT now bundles dependency versions that ship official CUDA&nbsp;12.1 wheels for PyTorch and Fairseq, ensuring full compatibility with NVIDIA Ada Lovelace GPUs such as the RTX&nbsp;4080. No manual patches are required.
 
-### 1. Install **NVIDIA drivers**
-Install the latest driver recommended for your GPU (for example `nvidia-driver-535` on Ubuntu).
+1. **Install the latest NVIDIA driver.** On Ubuntu you can let the operating system pick the recommended driver for your GPU:
 
-```bash
-sudo add-apt-repository -y ppa:graphics-drivers
-sudo apt update
-sudo apt install -y nvidia-driver-535
-```
+   ```bash
+   sudo apt update
+   sudo ubuntu-drivers install
+   sudo reboot
+   ```
 
-### 2. Install ModernMT with updated requirements
+2. **Install the CUDA Toolkit and cuDNN runtime (if you are not using Docker).** Follow the steps in [Install NVIDIA drivers and CUDA Toolkit](#install-nvidia-drivers-and-cuda-toolkit) to install CUDA&nbsp;12.1 and the corresponding cuDNN packages.
 
-Follow the instructions in [Install ModernMT from source](#install-modernmt-from-source) but, **before running `python3 setup.py`**, replace the `requirements.txt` file with the following content:
-```
-regex
-sacrebleu==1.5.1
-requests
-cachetools
-tensorboardX==2.1
-torch>=2.1
-fairseq==0.12.2
-```
+3. **Install GPU-enabled PyTorch before the rest of the Python dependencies.** Use the official CUDA&nbsp;12.1 wheel index so that the packages downloaded by `pip` are compatible with your driver:
 
-After that, continue installing ModernMT as indicated. No manual patching of Fairseq is required with these versions.
+   ```bash
+   pip3 install --upgrade pip
+   pip3 install --index-url https://download.pytorch.org/whl/cu121 torch torchvision torchaudio
+   pip3 install -r requirements.txt
+   ```
+
+4. **Verify the installation.** The following command should report PyTorch 2.1+ and Fairseq 0.12.2+ with CUDA available:
+
+   ```bash
+   python3 - <<'PY'
+   import torch, fairseq
+   print(f"PyTorch: {torch.__version__}, CUDA available: {torch.cuda.is_available()}")
+   print(f"Fairseq: {fairseq.__version__}")
+   PY
+   ```
+
+When these steps complete successfully, ModernMT is ready to train and serve models on an RTX&nbsp;4080 or other RTX 40-series GPUs.
 
 # Install ModernMT via Docker
 
@@ -59,35 +65,32 @@ If you are familiar with Docker, this is usually the easiest option to use Moder
 
 ### Install NVIDIA drivers
 
-The first step is **NVIDIA drivers** installation:
+Install the latest recommended NVIDIA driver for your GPU and reboot:
 ```bash
-sudo add-apt-repository -y ppa:graphics-drivers
 sudo apt update
-sudo apt install -y nvidia-driver-430
+sudo ubuntu-drivers install
+sudo reboot
 ```
 
-In order to finalize the installation you need to **reboot your machine**.
-
 ### Install NVIDIA Docker
-Next step is to install [nvidia-docker2](https://github.com/NVIDIA/nvidia-docker) package that allow docker images to directly access the underlying GPU hardware with the CUDA library:
+Next install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) so Docker containers can access the GPU:
 ```bash
-# Add the package repositories
-curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | \
-  sudo apt-key add -
-distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
-curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | \
-  sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+distribution=$(. /etc/os-release; echo $ID$VERSION_ID)
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | \
+  sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -fsSL https://nvidia.github.io/libnvidia-container/stable/$distribution/libnvidia-container.list | \
+  sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' | \
+  sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
 sudo apt-get update
-
-# Install nvidia-docker2 and reload the Docker daemon configuration
-sudo apt-get install -y nvidia-docker2
-sudo pkill -SIGHUP dockerd
+sudo apt-get install -y nvidia-container-toolkit
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
 ```
 
 ### Run latest ModernMT image
 Finally, you are able to run the latest ModernMT image with Docker:
 ```bash
-sudo docker run --runtime=nvidia --rm -it --publish 8045:8045 modernmt/master bash
+sudo docker run --gpus all --rm -it --publish 8045:8045 modernmt/master bash
 ```
 
 Done! Go to [README.md](README.md) to create your first engine.
@@ -101,46 +104,41 @@ With every ModernMT release in Github we also include a binary version of the pa
 
 First you need to install the **NVIDIA drivers**:
 ```bash
-sudo add-apt-repository -y ppa:graphics-drivers
 sudo apt update
-sudo apt install -y nvidia-driver-430
+sudo ubuntu-drivers install
+sudo reboot
 ```
 
-In order to finalize the installation you need to **reboot your machine**.
-
-Then you need to install the **CUDA Toolkit 10.1**, on Ubuntu 18.04 follow these steps:
+After rebooting, install the **CUDA Toolkit 12.1** using the official NVIDIA apt repository for Ubuntu 22.04 (adjust the repository URL if you are on a different supported distribution):
 ```bash
-# Download .deb package locally
-wget https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda-repo-ubuntu1804-10-1-local-10.1.105-418.39_1.0-1_amd64.deb
-
-# Install cuda
-sudo dpkg -i cuda-repo-ubuntu1804-10-1-local-10.1.105-418.39_1.0-1_amd64.deb
-sudo apt-key add /var/cuda-repo-10-1-local-10.1.105-418.39/7fa2af80.pub
-sudo apt update
-sudo apt install -y cuda
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt-get update
+sudo apt-get install -y cuda-toolkit-12-1
 ```
 
-Next install the **NVIDIA cuDNN library** from: [NVIDIA cuDNN Download](https://developer.nvidia.com/rdp/cudnn-download). Select the option *"Download cuDNN v7.6.5 (November 5th, 2019), for CUDA 10.1"* and then *"cuDNN Runtime Library for Ubuntu18.04 (Deb)"*. If this version is not listed in the main page, you can find it in the [archived cuDNN releases](https://developer.nvidia.com/rdp/cudnn-archive).
-Finally simply run this command on the downloaded package:
+Next install the **NVIDIA cuDNN library** from [NVIDIA cuDNN Downloads](https://developer.nvidia.com/cudnn-downloads). Select the CUDA&nbsp;12.x runtime and development Debian packages that match your operating system, download them, and install them for example with:
 ```bash
-sudo dpkg -i libcudnn7_7.6.5.32-1+cuda10.1_amd64.deb
+sudo dpkg -i libcudnn9-cuda-12-1_*.deb
+sudo dpkg -i libcudnn9-dev-cuda-12-1_*.deb
 ```
+Refer to the release notes on the download page for the exact package names of the latest cuDNN build.
 
-### Install Java 8 and Python 3
+### Install Java 11 and Python 3
 
-ModernMT requires Java 8 and Python 3.6 (or higher). If not already installed on your system, you can run the following command:
+ModernMT requires Java 11 and Python 3.8 (or higher). If not already installed on your system, you can run the following command:
 ```bash
-sudo apt install -y openjdk-8-jdk python3 python3-pip
+sudo apt install -y openjdk-11-jdk python3 python3-pip
 ```
 
 In order to check if the installation completed successfully you can run these two commands and check the output:
 ```bash
 $ java -version
-openjdk version "1.8.0_191"
+openjdk version "11.0.x" 202x-xx-xx
 [...]
 
 $  python3 --version
-Python 3.6.7
+Python 3.8.x
 ```
 
 If your output is not the expected one, please go to the [Troubleshooting](#troubleshooting-and-support) section of this guide.
@@ -170,7 +168,7 @@ This option is most suitable for developers, contributors or enthusiasts willing
 
 Please, follow these installation steps from the previous option (binary installation):
 - [Install NVIDIA drivers and CUDA Toolkit](#install-nvidia-drivers-and-cuda-toolkit)
-- [Install Java 8 and Python 3](#install-java-8-and-python-3)
+- [Install Java 11 and Python 3](#install-java-11-and-python-3)
 
 ### Install development libraries and tools
 
@@ -185,6 +183,8 @@ We are now ready to clone the ModernMT repository from Github:
 ```bash
 git clone https://github.com/modernmt/modernmt.git modernmt && cd modernmt
 ```
+
+Before compiling, ensure you followed the steps in [Modern NVIDIA GPUs (RTX 40 Series)](#modern-nvidia-gpus-rtx-40-series) so that GPU-enabled PyTorch and Fairseq are available in your environment.
 
 Next, run the installation script:
 ```bash

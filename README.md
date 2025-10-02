@@ -22,6 +22,8 @@ ModernMT goal is to deliver the quality of multiple custom engines by adapting o
 
 You can find more information on: http://www.modernmt.eu/
 
+> **Hardware compatibility.** ModernMT is continuously tested with the latest [Fairseq](https://github.com/facebookresearch/fairseq) releases (0.12.2+) and CUDA 12.1-enabled PyTorch builds, providing first-class support for NVIDIA RTX 40-series GPUs including the RTX&nbsp;4080. Follow [INSTALL.md](INSTALL.md) for detailed setup instructions.
+
 ## Your first translation with ModernMT
 
 ### Installation
