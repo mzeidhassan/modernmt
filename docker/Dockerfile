@@ -1,12 +1,12 @@
 # ===================================================================================================
 # STAGE: Base stage with CUDA/cuDNN libraries, Java and python
 # ===================================================================================================
-FROM nvidia/cuda:10.1-cudnn7-runtime-ubuntu18.04 AS modernmt-base
+FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04 AS modernmt-base
 
 ARG MMT_VERSION
 RUN : "${MMT_VERSION:?Build argument needs to be set and non-empty.}"
 
-RUN apt-get update && apt-get install -y --no-install-recommends locales gcc g++ python3 python3-dev python3-setuptools python3-wheel python3-pip openjdk-8-jdk curl && \
+RUN apt-get update && apt-get install -y --no-install-recommends locales gcc g++ python3 python3-dev python3-setuptools python3-wheel python3-pip openjdk-11-jdk curl && \
     curl https://raw.githubusercontent.com/modernmt/modernmt/$MMT_VERSION/requirements.txt > /tmp/requirements.txt && pip3 install -r /tmp/requirements.txt && \
     locale-gen --purge en_US.UTF-8 && update-locale LANG=en_US.UTF-8 && echo "LANG=en_US.UTF-8" >> /etc/environment && \
     apt-get clean && rm -rf /root/.cache/pip/ /tmp/* /var/lib/apt/lists/* /var/tmp/*
