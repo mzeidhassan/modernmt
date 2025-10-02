@@ -2,6 +2,7 @@ import locale
 import os
 
 import fairseq
+import re
 from fairseq.models import register_model_architecture
 from fairseq.models.transformer import base_architecture
 from fairseq.tasks import register_task
@@ -13,9 +14,20 @@ if locale.getpreferredencoding().lower() != 'utf-8':
     raise UnicodeError('python locale preferred encoding is "%s", UTF-8 expected' % locale.getpreferredencoding())
 
 
+def _numeric_version_parts(version_string):
+    parts = []
+    for chunk in version_string.split('.'):
+        match = re.match(r'^(\d+)', chunk)
+        if match:
+            parts.append(int(match.group(1)))
+        else:
+            parts.append(0)
+    return parts
+
+
 def is_fairseq_0_12():
-    version = [int(n) for n in fairseq.__version__.split('.')]
-    return version[1] >= 12
+    version = _numeric_version_parts(fairseq.__version__)
+    return len(version) > 1 and version[1] >= 12
 
 
 @register_task('mmt_translation')
